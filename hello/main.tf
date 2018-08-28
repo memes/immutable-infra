@@ -112,7 +112,6 @@ resource "google_compute_firewall" "allow-web" {
         ports    = ["80"]
     }
 
-    # These are the IP address of Google's global loadbalancers
     source_ranges = ["0.0.0.0/0"]
     target_tags   = ["web"]
 }
