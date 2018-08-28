@@ -8,18 +8,24 @@ provider "google" {
     zone = "${var.zone}"
 }
 
-data "local_file" "startup-script" {
-    filename = "setup.sh"
+data "template_file" "startup-script" {
+    count = "${var.instance_count}"
+    template = "${file("./setup.sh")}"
+
+    vars {
+        host = "${format("web-%02d", count.index)}"
+    }
 }
 
 resource "google_compute_instance" "web" {
-    name = "web"
+    count = "${var.instance_count}"
+    name = "${format("web-%02d", count.index)}"
     machine_type = "n1-standard-1"
     allow_stopping_for_update = true
     tags = ["web"]
 
     metadata {
-        startup-script = "${data.local_file.startup-script.content}"
+        startup-script = "${data.template_file.startup-script.*.rendered[count.index]}"
     }
 
     boot_disk {
@@ -49,7 +55,7 @@ resource "google_compute_instance_group" "web" {
     name = "web-unmanaged-group"
     zone = "${var.zone}"
 
-    instances = ["${google_compute_instance.web.self_link}"]
+    instances = ["${google_compute_instance.web.*.self_link}"]
 
     named_port {
         name = "http"
@@ -59,6 +65,8 @@ resource "google_compute_instance_group" "web" {
 
 resource "google_compute_health_check" "web" {
     name = "web-health-check"
+    timeout_sec = 1
+    check_interval_sec = 1
     tcp_health_check {
         port = "80"
     }
@@ -69,6 +77,8 @@ resource "google_compute_backend_service" "web" {
     port_name = "http"
     protocol = "HTTP"
     enable_cdn = false
+    timeout_sec = 3
+    
 
     backend {
         group = "${google_compute_instance_group.web.self_link}"
@@ -103,6 +113,6 @@ resource "google_compute_firewall" "allow-web" {
     }
 
     # These are the IP address of Google's global loadbalancers
-    source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
+    source_ranges = ["0.0.0.0/0"]
     target_tags   = ["web"]
 }

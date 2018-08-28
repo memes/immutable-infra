@@ -21,5 +21,5 @@ variable "zone" {
 variable "instance_count" {
     type = "string"
     description = "The number of web server instances to launch. Defaults to 1."
-    default = "1"
+    default = "2"
 }

@@ -4,13 +4,14 @@
 sudo apt-get install -y nginx
 
 # Customise home page
-sudo cat > /var/www/html/index.html <<EOF
+sudo sh -c "cat > /var/www/html/index.html" <<EOF
 <html>
   <head>
     <title>Hello from Terraform!</title>
   </head>
   <body>
     <h1>Hello from Terraform!</h1>
+    <h2>${host}</h2>
   </body>
 </html>
 EOF
