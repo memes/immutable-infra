@@ -1,0 +1,3 @@
+# Don't push local terraform state
+.terraform
+terraform.tfstate*
