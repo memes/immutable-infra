@@ -17,6 +17,21 @@ data "template_file" "startup-script" {
     }
 }
 
+resource "google_compute_ssl_certificate" "web" {
+    name = "wildcard-gdgcloudoc-com"
+    private_key = "${file("./tls_certs/wildcard.gdgcloudoc.com-key.pem")}"
+    certificate = "${file("./tls_certs/wildcard.gdgcloudoc.com.pem")}"
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "google_compute_ssl_policy" "web" {
+    name = "tls1-2-modern"
+    profile = "MODERN"
+    min_tls_version = "TLS_1_2"
+}
+
 resource "google_compute_instance" "web" {
     count = "${var.instance_count}"
     name = "${format("web-%02d", count.index)}"
@@ -93,18 +108,32 @@ resource "google_compute_url_map" "web" {
 }
 
 resource "google_compute_target_http_proxy" "web" {
-    name    = "web-proxy"
+    name    = "http-proxy"
     url_map = "${google_compute_url_map.web.self_link}"
 }
 
-resource "google_compute_global_forwarding_rule" "web" {
-    name       = "web-global-fwd-rule"
+resource "google_compute_target_https_proxy" "web" {
+    name    = "https-proxy"
+    url_map = "${google_compute_url_map.web.self_link}"
+    ssl_certificates = ["${google_compute_ssl_certificate.web.self_link}"]
+    ssl_policy = "${google_compute_ssl_policy.web.self_link}"
+}
+
+resource "google_compute_global_forwarding_rule" "http" {
+    name       = "http-global-fwd-rule"
     target     = "${google_compute_target_http_proxy.web.self_link}"
     ip_address = "${google_compute_global_address.web.address}"
     port_range = "80"
 }
 
-resource "google_compute_firewall" "allow-web" {
+resource "google_compute_global_forwarding_rule" "https" {
+    name       = "https-global-fwd-rule"
+    target     = "${google_compute_target_https_proxy.web.self_link}"
+    ip_address = "${google_compute_global_address.web.address}"
+    port_range = "443"
+}
+
+resource "google_compute_firewall" "allow-http" {
     name    = "allow-web"
     network = "default"
     allow {
