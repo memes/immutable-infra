@@ -134,7 +134,7 @@ resource "google_compute_global_forwarding_rule" "https" {
 }
 
 resource "google_compute_firewall" "allow-http" {
-    name    = "allow-web"
+    name    = "allow-http"
     network = "default"
     allow {
         protocol = "tcp"
@@ -143,4 +143,17 @@ resource "google_compute_firewall" "allow-http" {
 
     source_ranges = ["0.0.0.0/0"]
     target_tags   = ["web"]
+}
+
+data "google_dns_managed_zone" "gdgcloudoc" {
+    name = "gdgcloudoc-root"
+}
+
+resource "google_dns_record_set" "infra" {
+    name = "${format("infra.%s", data.google_dns_managed_zone.gdgcloudoc.dns_name)}"
+    managed_zone = "${data.google_dns_managed_zone.gdgcloudoc.name}"
+    type = "A"
+    ttl = "30"
+
+    rrdatas = ["${google_compute_global_forwarding_rule.https.ip_address}"]
 }
