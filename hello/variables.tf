@@ -3,7 +3,7 @@ variable "project_id" {
     description = <<EOF
 The unique project id that will contain these resources. Defaults to `memes-sandbox`.
 EOF
-    default = "memes-sandbox"
+    default = "ocgcp-projects"
 }
 
 variable "region" {
